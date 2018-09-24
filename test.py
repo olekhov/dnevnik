@@ -53,6 +53,9 @@ d.OpenDiary(students[1]['id'])
 marks= d.GetMarks(students[1]['id'])
 pdb.set_trace()
 
+for m in marks:
+    print(f"{d.sched_dict[m['group_id']]['subject_name']}: {m['name']}")
+
 pprint(marks, depth=2)
 
 #pprint(students)
