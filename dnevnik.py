@@ -10,6 +10,8 @@ import pdb
 
 from pprint import pprint
 
+from dateutil.parser import *
+import datetime
 
 from utils import my_get_post, print_dict
 
@@ -168,7 +170,6 @@ class Dnevnik:
         for g in self.groups:
             gs.append(str(g['id']))
         params={ "group_ids" : ','.join(gs),"pid":self._pid}
-#        pdb.set_trace()
         r=my_get_post(ps.get,f"https://dnevnik.mos.ru/jersey/api/groups",
                 headers=self._sh, params=params)
         self.schedule=json.loads(r.text)
@@ -178,12 +179,38 @@ class Dnevnik:
             self.sched_dict[s['id']]=s
         pass
 
-    def GetMarks(self,student_id):
+    def GetHomework(self, student_id, begin_date, end_date):
         ps=self._ps
 
         params={
-                "created_at_from":"01.09.2018",
-                "created_at_to"  :"23.09.2018",
+                "academic_year_id":"6",
+                "begin_date":begin_date,
+                "end_date": end_date,
+                "pid":self._pid,
+                "student_profile_id":student_id}
+
+        r=my_get_post(ps.get,f"https://dnevnik.mos.ru/core/api/student_homeworks", headers=self._sh, params=params)
+
+        j=json.loads(r.text)
+
+        for h in j:
+            cr=parse(h['homework_entry']['created_at'])
+            dt_assigned=parse(h['homework_entry']['homework']['date_assigned_on'])
+            if cr>dt_assigned+datetime.timedelta(days=2):
+                h['fair']=False
+            else:
+                h['fair']=True
+        return j
+
+
+        pass
+
+    def GetMarks(self,student_id, created_from, created_to):
+        ps=self._ps
+
+        params={
+                "created_at_from":created_from,
+                "created_at_to"  :created_to,
                 "page":"1", "per_page":"50",
                 "pid" : self._pid,
                 "student_profile_id": student_id}
