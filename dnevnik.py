@@ -10,6 +10,8 @@ import pdb
 
 from pprint import pprint
 
+from dateutil.parser import *
+import datetime
 
 from utils import my_get_post, print_dict
 
@@ -35,7 +37,7 @@ class Dnevnik:
 
         self._ps=self._auth._ps
         ps=self._ps
-        #pdb.set_trace()
+#        pdb.set_trace()
         ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
 
         milisecs=calendar.timegm(time.gmtime())*1000+random.randint(0,999)+1
@@ -146,22 +148,69 @@ class Dnevnik:
         r=my_get_post(ps.post,f"https://dnevnik.mos.ru/lms/api/sessions?pid={self._pid}",
             headers=self._sh)
         self._sh["Accept"]="application/json"
-        LoadGroups()
-        LoadSchedule()
+        self.LoadGroups(student_id)
+        self.LoadSchedule(student_id)
         return
 
-    def LoadGroups(self):
+    def LoadGroups(self, student_id):
+        ps=self._ps
+        params={
+                "academic_year_id":"6",
+                "pid":self._pid,
+                "with_archived_groups":"true",
+                "with_groups":"true" }
+        r=my_get_post(ps.get,f"https://dnevnik.mos.ru/core/api/student_profiles/{student_id}",
+                headers=self._sh, params=params)
+        self.groups=json.loads(r.text)['groups']
         pass
 
-    def LoadSchedule(self):
+    def LoadSchedule(self, student_id):
+        ps=self._ps
+        gs=[]
+        for g in self.groups:
+            gs.append(str(g['id']))
+        params={ "group_ids" : ','.join(gs),"pid":self._pid}
+        r=my_get_post(ps.get,f"https://dnevnik.mos.ru/jersey/api/groups",
+                headers=self._sh, params=params)
+        self.schedule=json.loads(r.text)
+
+        self.sched_dict={}
+        for s in self.schedule:
+            self.sched_dict[s['id']]=s
         pass
 
-    def GetMarks(self,student_id):
+    def GetHomework(self, student_id, begin_date, end_date):
         ps=self._ps
 
         params={
-                "created_at_from":"01.09.2018",
-                "created_at_to"  :"23.09.2018",
+                "academic_year_id":"6",
+                "begin_date":begin_date,
+                "end_date": end_date,
+                "pid":self._pid,
+                "student_profile_id":student_id}
+
+        r=my_get_post(ps.get,f"https://dnevnik.mos.ru/core/api/student_homeworks", headers=self._sh, params=params)
+
+        j=json.loads(r.text)
+
+        for h in j:
+            cr=parse(h['homework_entry']['created_at'])
+            dt_assigned=parse(h['homework_entry']['homework']['date_assigned_on'])
+            if cr>dt_assigned+datetime.timedelta(days=2):
+                h['fair']=False
+            else:
+                h['fair']=True
+        return j
+
+
+        pass
+
+    def GetMarks(self,student_id, created_from, created_to):
+        ps=self._ps
+
+        params={
+                "created_at_from":created_from,
+                "created_at_to"  :created_to,
                 "page":"1", "per_page":"50",
                 "pid" : self._pid,
                 "student_profile_id": student_id}

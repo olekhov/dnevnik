@@ -45,15 +45,31 @@ print("Вход осуществлён пользователем: %s %s %s" % (
 print("Роль: ", "Родитель" if d._profile['profiles'][0]['type'] == 'parent' else "Ученик")
 
 students = d.ListStudents()
-
 for i,s in enumerate(students, start=1):
     print(f"{i}. {s['user_name']}")
 
-d.OpenDiary(students[1]['id'])
-marks= d.GetMarks(students[1]['id'])
-pdb.set_trace()
+kid=2
+d.OpenDiary(students[kid]['id'])
+marks= d.GetMarks(students[kid]['id'],"17.09.2018","24.09.2018")
 
-pprint(marks, depth=2)
+for m in marks:
+    print(f"{d.sched_dict[m['group_id']]['subject_name']}: {m['name']}")
+
+
+hw = d.GetHomework(students[kid]['id'],"24.09.2018","30.09.2018")
+
+for h in hw:
+    print(f"{Fore.BLUE}{d.sched_dict[h['homework_entry']['homework']['group_id']]['subject_name']}{Style.RESET_ALL}  ",
+            end="")
+    if not h['fair']:
+        print(f"{Back.RED}",end="")
+    print(f"{h['homework_entry']['created_at']} : "
+        f"{h['homework_entry']['homework']['date_assigned_on']} -- "
+        f"{h['homework_entry']['homework']['date_prepared_for']}{Style.RESET_ALL}")
+    print(h['homework_entry']['description'])
+
+
+#pprint(hw)
 
 #pprint(students)
 #j = d.ListProfiles()
