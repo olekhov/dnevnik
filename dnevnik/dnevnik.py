@@ -88,38 +88,44 @@ class Dnevnik:
 
         r=my_get_post(ps.get, "https://www.mos.ru/pgu/ru/application/dogm/journal/")
         
-        dnevnik_top_referer = r.headers['Location']
+        self.dnevnik_top_referer = r.headers['Location']
 
         # 200 redirect to https://www.mos.ru/pgu/ru/services/link/2103/?onsite_from=3532
         r=my_get_post(ps.get,r.headers['Location'])
 
         # Тут мы в https://dnevnik.mos.ru/?token=64749fb9596a7f2078090a894ab31452
-        m=re.search('.*token=(.*)', dnevnik_top_referer)
+        m=re.search('.*token=(.*)', self.dnevnik_top_referer)
         self._auth_token=m.group(1)
 
         opts = { "auth_token": self._auth_token }
         
         r=my_get_post(ps.post, "https://dnevnik.mos.ru/lms/api/sessions",
-                headers={"referer": dnevnik_top_referer}, json=opts)
+                headers={"referer": self.dnevnik_top_referer}, json=opts)
 
         self._profile=json.loads(r.text)
         self._pid=str(self._profile["profiles"][0]["id"])
         self._ids=str(self._profile["profiles"][0]["user_id"])
-        ps.headers["Auth-Token"]=self._auth_token
+        self.Authenticated = self._auth_token != ""
+        return self.Authenticated
 
+    def SelectAcademicYear(self, year_id):
+        ps=self._ps
+        year_id=str(year_id)
+
+        ps.headers["Auth-Token"]=self._auth_token
         ps.cookies["authtype"]="1"
-        ps.cookies["aid"]="6"
+        ps.cookies["aid"]=year_id
         ps.cookies["auth_token"]=self._auth_token
         ps.cookies["is_auth"]="true"
         ps.cookies["profile_id"]=self._pid
         r=my_get_post(ps.get, "https://dnevnik.mos.ru/desktop",
-                headers={"referer":dnevnik_top_referer})
-
-        r=my_get_post(ps.post,f"https://dnevnik.mos.ru/lms/api/sessions?pid=self._profile['profiles'][0]['id']",
+                headers={"referer":self.dnevnik_top_referer})
+        
+        opts = { "auth_token": self._auth_token }
+        r=my_get_post(ps.post,f"https://dnevnik.mos.ru/lms/api/sessions?pid={self._profile['profiles'][0]['id']}",
                 json=opts, headers={"referer":"https://dnevnik.mos.ru/desktop"})
 
-        self.Authenticated = self._auth_token != ""
-        return self.Authenticated
+        pass
 
     def ListStudents(self):
         ps=self._ps
@@ -179,11 +185,11 @@ class Dnevnik:
             self.sched_dict[s['id']]=s
         pass
 
-    def GetHomework(self, student_id, begin_date, end_date):
+    def GetHomework(self, year_id, student_id, begin_date, end_date):
         ps=self._ps
 
         params={
-                "academic_year_id":"6",
+                "academic_year_id":year_id,
                 "begin_date":begin_date,
                 "end_date": end_date,
                 "pid":self._pid,
@@ -220,50 +226,6 @@ class Dnevnik:
 
         return j
 
-
-
-    def SelectProfile(self, p):
-        """ Select profile """
-        """ POST https://www.mos.ru/pgu/ru/application/dogm/journal/ """
-        ps=self._ps
-        params={ 
-            "ajaxAction" : "get_token", 
-            "ajaxModule" : "DogmJournal", 
-            "data[login]": p.login, 
-            "data[pass]" : p.password, 
-            "data[system]" : p.system }
-        ps.cookies["elk_token"]="null"+"|"+self._pgu_mos_ru_token
-        ps.cookies["elk_id"]=""
-        print("cookies:")
-        print_dict(ps.cookies)
-        print("params:")
-        print_dict(params)
-        ps.headers.update({'referer':"https://www.mos.ru/pgu/ru/application/dogm/journal/"})
-
-        r=my_get_post(ps.post,"https://pgu.mos.ru/ru/application/dogm/journal/", data=params)
-        print("Diary auth token:")
-        print(r.text)
-        pass
-
-
-
-        """ https://dnevnik.mos.ru/lms/api/sessions """
-
-
-    def ListAcademicYears(self):
-        """ Get list of academic years """
-        # https://dnevnik.mos.ru/core/api/academic_years?pid=#
-        pass
-
-
-
-    def SelectDiaryAccount(id):
-        """ Select diary account """
-        pass
-
-    def SelectStudent(id):
-        """ Select student """
-        pass
 
 
 class DiaryProfile:
