@@ -1,0 +1,10 @@
+#!env python3.6
+
+class BotConfig:
+    pass
+
+botcfg = BotConfig()
+
+botcfg.token=""
+
+

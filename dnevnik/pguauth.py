@@ -13,6 +13,7 @@ class PGUAuthenticator:
     """ PGU Authenticator """
     def __init__(self, cfg):
         self._ps = requests.Session()
+        self._ps.proxies = cfg.proxies
         self._cfg = cfg
         self._ps.headers['User-Agent'] = self._cfg.UA
         self.token = ""
