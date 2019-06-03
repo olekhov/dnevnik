@@ -13,8 +13,7 @@ from pprint import pprint
 from dateutil.parser import *
 import datetime
 
-from utils import my_get_post, print_dict
-
+from .utils import my_get_post, print_dict
 
 
 """
@@ -37,39 +36,9 @@ class Dnevnik:
 
         self._ps=self._auth._ps
         ps=self._ps
-#        pdb.set_trace()
-        ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
+        #ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
 
-        milisecs=calendar.timegm(time.gmtime())*1000+random.randint(0,999)+1
-        r=my_get_post(ps.get, "https://my.mos.ru/static/xdm/index.html?nocache="+str(milisecs)+"&xdm_e=https%3A%2F%2Fwww.mos.ru&xdm_c=default1&xdm_p=1")
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        
-        # system_id: mos.ru
-        r=my_get_post(ps.get,"https://www.mos.ru/api/oauth20/v1/frontend/json/ru/options")
-        opts=json.loads(r.text)
-
-        # надо: nonce signature timestamp
-        #print("token request cookies:")
-        #print_dict(ps.cookies)
-        token_data={
-                "system_id":opts["elk"]["system_id"],
-                "nonce":opts["elk"]["nonce"],
-                "timestamp":opts["elk"]["timestamp"],
-                "signature":opts["elk"]["signature"]}
-        ps.cookies["mos_user_segment"]="default"
-        r=my_get_post(ps.post,self._data_url+"token", data=token_data)
-
-        self._mos_ru_token=json.loads(r.text)["token"]
-
-        r=my_get_post(ps.get, "https://www.mos.ru/")
-        ps.cookies.update(r.cookies)
-        ps.cookies["mos_user_segment"]="default"
+        pdb.set_trace()
         r=my_get_post(ps.get,"https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular",
                 headers={"referer":"https://www.mos.ru/"})
         # expect 301 redirect https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular

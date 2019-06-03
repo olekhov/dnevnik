@@ -1,37 +1,35 @@
 #!env python3
 
-import dnevnik
-import pdb
 
 from colorama import init, Fore, Back, Style
 
-from pguauth import PGUAuthenticator
+from dnevnik.mosauth.mosauth import MOSAuthenticator
 from dnevnik import Dnevnik
-from libmesh import MESHLibrary
-
-from gosuslugi_config import cfg
 
 from pprint import pprint
 import json
+import logging
+
+import pdb
 
 init()
-print(f"Вход на {Style.BRIGHT}{Fore.WHITE}ГОС{Fore.BLUE}УСЛ{Fore.RED}УГИ{Style.RESET_ALL}: ",
-        end="")
-auth = PGUAuthenticator(cfg)
+logging.basicConfig(level=logging.DEBUG) 
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("chardet").setLevel(logging.WARNING)
+                                                                         
+with open('config.json') as json_data_file:                         
+    pguconfig = json.load(json_data_file)     
 
-# pdb.set_trace()
-if auth.Authenticate() :
-    print(f"{Style.BRIGHT}{Fore.GREEN}OK{Style.RESET_ALL}")
+mosau = MOSAuthenticator({})
+
+if mosau.AuthenticateByESIA(pguconfig) :
+    logging.debug("Удачно аутентифицировались")
 else:
-    print(f"{Style.BRIGHT}{Back.RED}Ошибка!{Style.RESET_ALL}")
-    exit()
+    exit(1)
 
-
-#print("GOSUSLUGI TOKEN:")
-#print(auth.token)
-#print(auth.mostoken)
 print(f"Вход в электронный дневник: ", end="")
-d = Dnevnik(auth)
+d = Dnevnik(mosau)
 if d.Authenticate():
     print(f"{Style.BRIGHT}{Fore.GREEN}OK{Style.RESET_ALL}")
 else:
@@ -54,6 +52,7 @@ for i,s in enumerate(students, start=1):
 
 kid=2
 d.OpenDiary(students[kid]['id'])
+print(f"{Back.RED}Оценки{Style.RESET_ALL}")
 
 #marks= d.GetMarks(students[kid]['id'],"02.04.2018","08.04.2018")
 marks= d.GetMarks(students[kid]['id'],"01.09.2018","30.09.2018")
@@ -63,6 +62,7 @@ for m in marks:
 
 pass
 
+print(f"{Back.YELLOW}Домашка{Style.RESET_ALL}")
 # Академический год №6 2018-2019 прибит гвозями в исходниках 
 # main.5811432c83ebba560a9e.bundle.js
 hw = d.GetHomework("6",students[kid]['id'],"24.09.2018","30.09.2018")

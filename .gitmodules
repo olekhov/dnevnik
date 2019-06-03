@@ -1,0 +1,3 @@
+[submodule "dnevnik/mosauth"]
+	path = dnevnik/mosauth
+	url = https://github.com/olekhov/mosauth.git

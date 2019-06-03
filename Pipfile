@@ -10,6 +10,7 @@ requests = "*"
 colorama = "*"
 python-dateutil = "*"
 python-telegram-bot = "*"
+tqdm = "*"
 
 [requires]
-python_version = "3"
+python_version = "3.7"
