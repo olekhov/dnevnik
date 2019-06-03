@@ -39,6 +39,14 @@ class Dnevnik:
         #ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
 
         pdb.set_trace()
+        journal_cookies={
+                "session-cookie" : ps.cookies["session-cookie"],
+                "mos_id"         : "Cg8qAlz1Kq9U2QWZhzVeAgA=",
+                "ACS-SESSID"     : ps.cookies["ACS-SESSID"],
+                "Ltpatoken2"     : self._auth.Ltpatoken2,
+                "at"             : "1",
+                "elk_token"      : f"null|{self._auth.token}"}
+        ps.cookies.update(journal_cookies)
         r=my_get_post(ps.get,"https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular",
                 headers={"referer":"https://www.mos.ru/"})
         # expect 301 redirect https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular
@@ -46,7 +54,8 @@ class Dnevnik:
 
         # obtain PHPSESSID
         # 302 redirect to https://oauth20.mos.ru/sps/oauth/oauth20/authorize
-        r=my_get_post(ps.get,r.headers['Location'])
+        r=my_get_post(ps.get,r.headers['Location'],
+                headers={"referer":"https://www.mos.ru/services/catalog/popular/"})
         ps.cookies.update(r.cookies)
         # 302 redirect to https://www.mos.ru/pgu/ru/oauth/?code=74...       
         r=my_get_post(ps.get,r.headers['Location'])
