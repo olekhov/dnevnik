@@ -37,7 +37,6 @@ class Dnevnik:
         self._ps=self._auth._ps
         ps=self._ps
         #ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
-        pdb.set_trace()
 
         journal_cookies={
                 "session-cookie" : ps.cookies["session-cookie"],
@@ -52,21 +51,24 @@ class Dnevnik:
         # ожидаем 302 redirect https://dnevnik.mos.ru/?token=xxxx
         r1=my_get_post(ps.get,r_token.headers['Location'],
                 headers={"referer":"https://www.mos.ru/services/catalog/popular/"})
+        self.dnevnik_top_referer=r_token.headers['Location']
         r_sysmsgs = my_get_post(ps.get,"https://dnevnik.mos.ru/acl/api/system_messages?published=true&today=true",
                 headers={"referer": r_token.headers['Location']})
-        pdb.set_trace()
        
         ps.cookies.update({"from_pgu" : "true"})
+        journal_token=re.search("token=([0-9a-z]*)",r_token.headers['Location']).group(1)
+        token_data={"auth_token":journal_token}
         r2=my_get_post(ps.post, "https://dnevnik.mos.ru/lms/api/sessions",
                 headers={
                     "referer": r_token.headers['Location'],
                     "Accept":"application/json",
-                    "Accept-Encoding":"gzip, deflate, br"})
-        pdb.set_trace()
+                    "Accept-Encoding":"gzip, deflate, br"},
+                json=token_data)
 
         self._profile=json.loads(r2.text)
         self._pid=str(self._profile["profiles"][0]["id"])
         self._ids=str(self._profile["profiles"][0]["user_id"])
+        self._auth_token=journal_token
         self.Authenticated = self._auth_token != ""
         return self.Authenticated
 
