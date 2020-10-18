@@ -7,7 +7,7 @@ import json
 import re
 import pdb
 
-from utils import my_get_post, print_dict
+import dnevnik.utils
 
 """
 Классы, обслуживающие Библиотеку МЭШ
@@ -33,14 +33,14 @@ class MESHLibrary:
             "profileId" : self._profile_id,
             "authToken" : self._auth_token}
 
-        r = my_get_post(ps.get, "https://uchebnik.mos.ru/authenticate", params=params)
+        r = dnevnik.utils.my_get_port(ps.get, "https://uchebnik.mos.ru/authenticate", params=params)
         uchebnik_ref = r.request.url
         opts = {"auth_token" : self._auth_token }
-        r = my_get_post(ps.post, "https://uchebnik.mos.ru/api/sessions",
+        r = dnevnik.utils.my_get_port(ps.post, "https://uchebnik.mos.ru/api/sessions",
                 json=opts, headers={"referer" : uchebnik_ref, "Accept": "application/json; charset=UTF-8"})
         ps.cookies['auth_token'] = self._auth_token
 
-        r=my_get_post(ps.get,
+        r=dnevnik.utils.my_get_port(ps.get,
                 "https://uchebnik.mos.ru/api/users/"+str(self._user_id),
                 headers={"referer": uchebnik_ref })
         pdb.set_trace()
@@ -50,10 +50,10 @@ class MESHLibrary:
         ps = self._ps
         params={}
         pdb.set_trace()
-        r=my_get_post(ps.get,
+        r=dnevnik.utils.my_get_port(ps.get,
                 "https://uchebnik.mos.ru/api/subjects?with_controllable_items=true",
                 headers={"Accept":"application/vnd.api.v1+json"})
-        #r=my_get_post(ps.get, "https://uchebnik.mos.ru/cms/api/composed_documents/"+str(id), params=params)
+        #r=dnevnik.utils.my_get_port(ps.get, "https://uchebnik.mos.ru/cms/api/composed_documents/"+str(id), params=params)
 
         pass
 

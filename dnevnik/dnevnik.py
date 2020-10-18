@@ -13,9 +13,6 @@ from pprint import pprint
 from dateutil.parser import *
 import datetime
 
-from utils import my_get_post, print_dict
-
-
 
 """
 Class to access to E-Diary

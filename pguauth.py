@@ -3,7 +3,7 @@
 import requests
 import pdb
 
-from utils import my_get_post, print_dict
+from myutils import my_get_post
 import os.path
 
 from pprint import pprint
