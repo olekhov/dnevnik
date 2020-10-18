@@ -13,6 +13,8 @@ from pprint import pprint
 from dateutil.parser import *
 import datetime
 
+from .utils import my_get_post, print_dict
+
 
 """
 Class to access to E-Diary
@@ -34,74 +36,39 @@ class Dnevnik:
 
         self._ps=self._auth._ps
         ps=self._ps
-#        pdb.set_trace()
-        ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
+        #ps.cookies["mos_id"]="CllGxlmW7RAJKzw/DJfJAgA="
 
-        milisecs=calendar.timegm(time.gmtime())*1000+random.randint(0,999)+1
-        r=my_get_post(ps.get, "https://my.mos.ru/static/xdm/index.html?nocache="+str(milisecs)+"&xdm_e=https%3A%2F%2Fwww.mos.ru&xdm_c=default1&xdm_p=1")
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        
-        # system_id: mos.ru
-        r=my_get_post(ps.get,"https://www.mos.ru/api/oauth20/v1/frontend/json/ru/options")
-        opts=json.loads(r.text)
-
-        # надо: nonce signature timestamp
-        #print("token request cookies:")
-        #print_dict(ps.cookies)
-        token_data={
-                "system_id":opts["elk"]["system_id"],
-                "nonce":opts["elk"]["nonce"],
-                "timestamp":opts["elk"]["timestamp"],
-                "signature":opts["elk"]["signature"]}
-        ps.cookies["mos_user_segment"]="default"
-        r=my_get_post(ps.post,self._data_url+"token", data=token_data)
-
-        self._mos_ru_token=json.loads(r.text)["token"]
-
-        r=my_get_post(ps.get, "https://www.mos.ru/")
-        ps.cookies.update(r.cookies)
-        ps.cookies["mos_user_segment"]="default"
-        r=my_get_post(ps.get,"https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular",
+        journal_cookies={
+                "session-cookie" : ps.cookies["session-cookie"],
+                "mos_id"         : "Cg8qAlz1Kq9U2QWZhzVeAgA=",
+                "ACS-SESSID"     : ps.cookies["ACS-SESSID"],
+                "Ltpatoken2"     : self._auth.Ltpatoken2,
+                "elk_token"      : f"null|{self._auth.token}"}
+        ps.cookies.update(journal_cookies)
+        r_token=my_get_post(ps.get,"https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular",
                 headers={"referer":"https://www.mos.ru/"})
-        # expect 301 redirect https://www.mos.ru/pgu/ru/application/dogm/journal/?onsite_from=popular
-        ps.cookies.update(r.cookies)        
+        ps.cookies.update(r_token.cookies)        
+        # ожидаем 302 redirect https://dnevnik.mos.ru/?token=xxxx
+        r1=my_get_post(ps.get,r_token.headers['Location'],
+                headers={"referer":"https://www.mos.ru/services/catalog/popular/"})
+        self.dnevnik_top_referer=r_token.headers['Location']
+        r_sysmsgs = my_get_post(ps.get,"https://dnevnik.mos.ru/acl/api/system_messages?published=true&today=true",
+                headers={"referer": r_token.headers['Location']})
+       
+        ps.cookies.update({"from_pgu" : "true"})
+        journal_token=re.search("token=([0-9a-z]*)",r_token.headers['Location']).group(1)
+        token_data={"auth_token":journal_token}
+        r2=my_get_post(ps.post, "https://dnevnik.mos.ru/lms/api/sessions",
+                headers={
+                    "referer": r_token.headers['Location'],
+                    "Accept":"application/json",
+                    "Accept-Encoding":"gzip, deflate, br"},
+                json=token_data)
 
-        # obtain PHPSESSID
-        # 302 redirect to https://oauth20.mos.ru/sps/oauth/oauth20/authorize
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        # 302 redirect to https://www.mos.ru/pgu/ru/oauth/?code=74...       
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-        # 200 redirect to https://www.mos.ru/pgu/ru/services/link/2103/?onsite_from=3532
-        r=my_get_post(ps.get,r.headers['Location'])
-        ps.cookies.update(r.cookies)
-
-        r=my_get_post(ps.get, "https://www.mos.ru/pgu/ru/application/dogm/journal/")
-        
-        self.dnevnik_top_referer = r.headers['Location']
-
-        # 200 redirect to https://www.mos.ru/pgu/ru/services/link/2103/?onsite_from=3532
-        r=my_get_post(ps.get,r.headers['Location'])
-
-        # Тут мы в https://dnevnik.mos.ru/?token=64749fb9596a7f2078090a894ab31452
-        m=re.search('.*token=(.*)', self.dnevnik_top_referer)
-        self._auth_token=m.group(1)
-
-        opts = { "auth_token": self._auth_token }
-        
-        r=my_get_post(ps.post, "https://dnevnik.mos.ru/lms/api/sessions",
-                headers={"referer": self.dnevnik_top_referer}, json=opts)
-
-        self._profile=json.loads(r.text)
+        self._profile=json.loads(r2.text)
         self._pid=str(self._profile["profiles"][0]["id"])
         self._ids=str(self._profile["profiles"][0]["user_id"])
+        self._auth_token=journal_token
         self.Authenticated = self._auth_token != ""
         return self.Authenticated
 
